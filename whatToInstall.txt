@@ -1,0 +1,37 @@
+npx create-expo-app ../nazwa
+
+nawigacja:
+npm install @react-navigation/native
+npx expo install react-native-screens react-native-safe-area-context
+npm install @react-navigation/native-stack
+
+font:
+npx expo install expo-font
+
+zapis do pamięć:
+npx expo install @react-native-async-storage/async-storage
+
+zapis do pamięć 2048 bitów maks:
+npx expo install expo-secure-store
+
+mapy:
+npx expo install react-native-maps
+
+dostęp do kolejno zdjęć, kamery:
+npx expo install expo-media-library
+npx expo install expo-camera
+
+moduł do sharowania:
+npx expo install expo-sharing
+
+image picker:
+npx expo install expo-image-picker
+
+baza danych:
+npx expo install expo-sqlite
+
+dźwięk:
+npx expo install expo-av
+
+sensory:
+npx expo install expo-sensors
