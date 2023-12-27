@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Dimensions, StatusBar } from 'react-native';
 import { Accelerometer } from 'expo-sensors';
-import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
 
@@ -11,6 +10,9 @@ export default function App() {
     y: 0,
     z: 0,
   });
+  const [realX, setRealX] = useState(0)
+  const [realY, setRealY] = useState(0)
+  const [realZ, setRealZ] = useState(0)
   const [subscription, setSubscription] = useState(null)
   const [webs, setWebs] = useState(null)
 
@@ -24,8 +26,20 @@ export default function App() {
     setSubscription(null)
   };
 
+  const getReal = () => {
+    console.log(x)
+    if (Math.abs(realX - x) >= 0.01) {
+      setRealX((Math.round(x * 100) / 100).toFixed(2))
+    }
+    if (Math.abs(realY - y) >= 0.01) {
+      setRealY((Math.round(y * 100) / 100).toFixed(2))
+    }
+    if (Math.abs(realZ - z) >= 0.01) {
+      setRealZ((Math.round(z * 100) / 100).toFixed(2))
+    }
+  }
+
   useEffect(() => {
-    turnOn()
     return () => turnOff()
   }, []);
 
@@ -40,6 +54,7 @@ export default function App() {
   }
 
   useEffect(() => {
+    getReal()
     if (webs) {
       webs.onopen = () => {
         webs.send('>---połączono---<');
@@ -48,8 +63,8 @@ export default function App() {
       webs.onmessage = (e) => {
         console.log(e.data);
         setTimeout(function () {
-          webs.send("x: " + (Math.floor(x * 1000) / 1000) + " | y: " + (Math.floor(y * 1000) / 1000));
-        }, 100);
+          webs.send(realX + "|" + realY + "|" + realZ);
+        }, 300);
       }
 
       webs.onerror = (e) => {
@@ -68,21 +83,18 @@ export default function App() {
   }, [webs, x, y]);
 
   useEffect(() => {
-    connect()
     return () => disconnect()
   }, []);
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar></StatusBar>
-      <Text>----</Text>
-      <Text>----</Text>
+      <StatusBar />
       <TouchableOpacity onPress={subscription ? turnOff : turnOn} style={{ backgroundColor: "red", width: 50, height: 50 }}>
         <Text>{subscription ? "on" : "off"}</Text>
       </TouchableOpacity>
-      <Text>x: {x}</Text>
-      <Text>y: {y}</Text>
-      <Text>z: {z}</Text>
+      <Text>x: {realX}</Text>
+      <Text>y: {realY}</Text>
+      <Text>z: {realZ}</Text>
       <TouchableOpacity onPress={webs ? disconnect : connect} style={{ backgroundColor: "blue", width: 50, height: 50 }}>
         <Text>{webs ? "connected" : "disconnected"}</Text>
       </TouchableOpacity>
