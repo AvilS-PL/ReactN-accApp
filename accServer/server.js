@@ -66,7 +66,11 @@ wss.on('connection', (ws, req) => {
                     break
                 }
             }
-            ws.send(JSON.stringify(players))
+            if (id == null) {
+                ws.send(id)
+            } else {
+                ws.send(id)
+            }
         }
     });
 

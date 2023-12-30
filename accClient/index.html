@@ -33,10 +33,10 @@
         ws.onmessage = (e) => {
             let main = document.getElementById("main")
             main.innerHTML = ""
-            let decoded = JSON.parse(e.data)
             if (ready == 0) {
+                let decoded = JSON.parse(e.data)
                 for (let i = 0; i < decoded.length; i++) {
-                    if (decoded[i] != null && !decoded[i].active) {
+                    if (decoded[i] != null && !decoded[i].active && decoded[i].color) {
                         let sel = document.createElement("button")
                         sel.style.width = "50px"
                         sel.style.height = "30px"
@@ -46,7 +46,6 @@
                             color = decoded[i].color
                             ready = 1
                             id = i
-                            main.style.backgroundColor = color
                         })
                         main.append(sel)
                     }
@@ -59,7 +58,21 @@
                 setTimeout(function () {
                     ws.send(color);
                 }, 100);
+            } else if (ready == 2) {
+                console.log()
+                if (e.data == id) {
+                    main.style.backgroundColor = color
+                    ready = 3
+                } else {
+                    color = null
+                    id = null
+                    ready = 0
+                }
+                setTimeout(function () {
+                    ws.send("reciver");
+                }, 100);
             } else {
+                let decoded = JSON.parse(e.data)
                 for (let i = 0; i < decoded.length; i++) {
                     if (decoded[id] == null || !decoded[id].active) {
                         ready = 0
@@ -74,11 +87,15 @@
         }
 
         ws.onerror = (e) => {
+            console.log("/---error---\\")
             console.log(e.message);
+            console.log("\\---error---/")
         };
 
         ws.onclose = (e) => {
+            console.log("/---koniec---\\")
             console.log(e.code, e.reason);
+            console.log("\\---koniec---/")
         };
     </script>
 </head>
