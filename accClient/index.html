@@ -18,6 +18,7 @@
             background-color: #141414;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
         }
     </style>
     <script defer>
@@ -32,8 +33,10 @@
 
         ws.onmessage = (e) => {
             let main = document.getElementById("main")
-            main.innerHTML = ""
+            let test = document.getElementById("test")
             if (ready == 0) {
+                console.log("asdasdasdsa")
+                main.innerHTML = ""
                 let decoded = JSON.parse(e.data)
                 for (let i = 0; i < decoded.length; i++) {
                     if (decoded[i] != null && !decoded[i].active && decoded[i].color) {
@@ -52,17 +55,24 @@
                 }
                 setTimeout(function () {
                     ws.send('reciver')
-                }, 1000)
+                }, 300)
             } else if (ready == 1) {
                 ready = 2
                 setTimeout(function () {
                     ws.send(color);
                 }, 100);
             } else if (ready == 2) {
-                console.log()
                 if (e.data == id) {
-                    main.style.backgroundColor = color
+                    main.innerHTML = ""
                     ready = 3
+                    let pl = document.createElement("div")
+                    pl.id = "player"
+                    pl.style.width = "50px"
+                    pl.style.height = "50px"
+                    pl.style.backgroundColor = color
+                    pl.style.border = "1px solid white"
+                    pl.style.position = "absolute"
+                    main.append(pl)
                 } else {
                     color = null
                     id = null
@@ -72,17 +82,32 @@
                     ws.send("reciver");
                 }, 100);
             } else {
+                let player = document.getElementById("player")
                 let decoded = JSON.parse(e.data)
                 for (let i = 0; i < decoded.length; i++) {
                     if (decoded[id] == null || !decoded[id].active) {
                         ready = 0
                         color = null
-                        main.style.backgroundColor = "#141414"
+                        main.innerHTML = ""
                     }
                 }
+
+                //RUCH GRACZA
+                if (ready != 0) {
+                    player.style.bottom = ((Math.abs((decoded[id].y * 2) - 1) * (window.innerHeight - 50))) + "px"
+                    if (decoded[id].z > 0) {
+                        player.style.left = ((window.innerWidth / 2 + 25) + (Math.abs(decoded[id].z) * (window.innerWidth / 2 - 50))) + "px"
+
+                    } else {
+                        player.style.left = ((window.innerWidth / 2 + 25) - (Math.abs(decoded[id].z) * (window.innerWidth / 2 - 50))) + "px"
+
+                    }
+                }
+
+
                 setTimeout(function () {
                     ws.send("reciver");
-                }, 100);
+                }, 50);
             }
         }
 

@@ -4,7 +4,7 @@ import { Accelerometer } from 'expo-sensors';
 
 export default function App() {
 
-  Accelerometer.setUpdateInterval(100)
+  Accelerometer.setUpdateInterval(50)
   const [{ x, y, z }, setData] = useState({
     x: 0,
     y: 0,
