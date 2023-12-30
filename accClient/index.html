@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAME</title>
+    <style>
+        * {
+            margin: 0;
+        }
+
+        body {
+            background-color: #141414;
+        }
+
+        main {
+            background-color: #141414;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <script defer>
+        let ready = 0
+        let color = null
+        let id = null
+
+        const ws = new WebSocket('ws://192.168.43.40:3000');
+        ws.onopen = () => {
+            ws.send('reciver');
+        }
+
+        ws.onmessage = (e) => {
+            let main = document.getElementById("main")
+            main.innerHTML = ""
+            let decoded = JSON.parse(e.data)
+            if (ready == 0) {
+                for (let i = 0; i < decoded.length; i++) {
+                    if (decoded[i] != null && !decoded[i].active) {
+                        let sel = document.createElement("button")
+                        sel.style.width = "50px"
+                        sel.style.height = "30px"
+                        sel.style.backgroundColor = decoded[i].color
+                        sel.style.border = "1px solid white"
+                        sel.addEventListener("click", () => {
+                            color = decoded[i].color
+                            ready = 1
+                            id = i
+                            main.style.backgroundColor = color
+                        })
+                        main.append(sel)
+                    }
+                }
+                setTimeout(function () {
+                    ws.send('reciver')
+                }, 1000)
+            } else if (ready == 1) {
+                ready = 2
+                setTimeout(function () {
+                    ws.send(color);
+                }, 100);
+            } else {
+                for (let i = 0; i < decoded.length; i++) {
+                    if (decoded[id] == null || !decoded[id].active) {
+                        ready = 0
+                        color = null
+                        main.style.backgroundColor = "#141414"
+                    }
+                }
+                setTimeout(function () {
+                    ws.send("reciver");
+                }, 100);
+            }
+        }
+
+        ws.onerror = (e) => {
+            console.log(e.message);
+        };
+
+        ws.onclose = (e) => {
+            console.log(e.code, e.reason);
+        };
+    </script>
+</head>
+
+<body>
+    <main id="main"></main>
+</body>
+
+</html>

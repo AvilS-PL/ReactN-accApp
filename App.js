@@ -15,6 +15,7 @@ export default function App() {
   const [realZ, setRealZ] = useState(0)
   const [subscription, setSubscription] = useState(null)
   const [webs, setWebs] = useState(null)
+  const [colorek, setColorek] = useState("white")
 
   //acc
   const turnOn = () => {
@@ -27,7 +28,6 @@ export default function App() {
   };
 
   const getReal = () => {
-    console.log(x)
     if (Math.abs(realX - x) >= 0.01) {
       setRealX((Math.round(x * 100) / 100).toFixed(2))
     }
@@ -44,27 +44,24 @@ export default function App() {
   }, []);
 
   //websocket
-  const connect = () => {
+  const connect = async () => {
     setWebs(new WebSocket('ws://192.168.43.40:3000'))
   }
 
   const disconnect = () => {
     webs && webs.close()
     setWebs(null)
+    setColorek("white")
   }
 
   useEffect(() => {
-    getReal()
     if (webs) {
       webs.onopen = () => {
-        webs.send('>---połączono---<');
+        webs.send('sender');
       }
 
       webs.onmessage = (e) => {
-        console.log(e.data);
-        setTimeout(function () {
-          webs.send(realX + "|" + realY + "|" + realZ);
-        }, 300);
+        setColorek(e.data)
       }
 
       webs.onerror = (e) => {
@@ -80,14 +77,24 @@ export default function App() {
       };
 
     }
-  }, [webs, x, y]);
+  }, [webs]);
+
+  useEffect(() => {
+    getReal()
+  }, [x, y, z]);
+
+  useEffect(() => {
+    if (webs && webs.readyState === 1) {
+      webs.send(JSON.stringify({ x: realX, y: realY, z: realZ }));
+    }
+  }, [realX, realY, realZ]);
 
   useEffect(() => {
     return () => disconnect()
   }, []);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colorek, }}>
       <StatusBar />
       <TouchableOpacity onPress={subscription ? turnOff : turnOn} style={{ backgroundColor: "red", width: 50, height: 50 }}>
         <Text>{subscription ? "on" : "off"}</Text>
