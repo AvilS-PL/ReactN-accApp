@@ -3,112 +3,46 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAME</title>
-    <style>
-        * {
-            margin: 0;
-        }
+    <link rel="stylesheet" href="arkusz.css">
+    <title>Eater</title>
+</head>
 
-        body {
-            background-color: #141414;
-        }
-
-        main {
-            background-color: #141414;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-        }
-    </style>
-    <script defer>
-        let ready = 0
-        let color = null
-        let id = null
-
-        const ws = new WebSocket('ws://192.168.43.40:3000');
+<body>
+    <script>
+        // onkeydown="down(event)" onkeyup="up(event)"
+        let tab_item = []
+        let tab_server = []
+        let tab_players = []
+        let playerID = null
+        let playerColor = "#00000000"
+        const ws = new WebSocket('ws://192.168.43.201:3000');
         ws.onopen = () => {
             ws.send('reciver');
         }
-
         ws.onmessage = (e) => {
-            let main = document.getElementById("main")
-            let test = document.getElementById("test")
-            if (ready == 0) {
-                console.log("asdasdasdsa")
-                main.innerHTML = ""
-                let decoded = JSON.parse(e.data)
-                for (let i = 0; i < decoded.length; i++) {
-                    if (decoded[i] != null && !decoded[i].active && decoded[i].color) {
-                        let sel = document.createElement("button")
-                        sel.style.width = "50px"
-                        sel.style.height = "30px"
-                        sel.style.backgroundColor = decoded[i].color
-                        sel.style.border = "1px solid white"
-                        sel.addEventListener("click", () => {
-                            color = decoded[i].color
-                            ready = 1
-                            id = i
-                        })
-                        main.append(sel)
-                    }
-                }
-                setTimeout(function () {
-                    ws.send('reciver')
-                }, 300)
-            } else if (ready == 1) {
-                ready = 2
-                setTimeout(function () {
-                    ws.send(color);
-                }, 100);
-            } else if (ready == 2) {
-                if (e.data == id) {
-                    main.innerHTML = ""
-                    ready = 3
-                    let pl = document.createElement("div")
-                    pl.id = "player"
-                    pl.style.width = "50px"
-                    pl.style.height = "50px"
-                    pl.style.backgroundColor = color
-                    pl.style.border = "1px solid white"
-                    pl.style.position = "absolute"
-                    main.append(pl)
+            let decoded = JSON.parse(e.data)
+            if (decoded.status == "init") {
+                if (decoded.id == null) {
+                    setTimeout(() => {
+                        ws.send('reciver');
+                    }, 500);
                 } else {
-                    color = null
-                    id = null
-                    ready = 0
+                    playerID = decoded.id
+                    playerColor = decoded.players[decoded.id].color
+                    game()
                 }
-                setTimeout(function () {
-                    ws.send("reciver");
-                }, 100);
-            } else {
-                let player = document.getElementById("player")
-                let decoded = JSON.parse(e.data)
-                for (let i = 0; i < decoded.length; i++) {
-                    if (decoded[id] == null || !decoded[id].active) {
-                        ready = 0
-                        color = null
-                        main.innerHTML = ""
-                    }
+            } else if (decoded.status == "data") {
+                tab_server = decoded.obstacles
+                tab_players = decoded.players
+                if (tab_players[playerID] == null) {
+                    ws.close()
+                    location.reload(true);
                 }
 
-                //RUCH GRACZA
-                if (ready != 0) {
-                    player.style.bottom = ((Math.abs((decoded[id].y * 2) - 1) * (window.innerHeight - 50))) + "px"
-                    if (decoded[id].z > 0) {
-                        player.style.left = ((window.innerWidth / 2 + 25) + (Math.abs(decoded[id].z) * (window.innerWidth / 2 - 50))) + "px"
-
-                    } else {
-                        player.style.left = ((window.innerWidth / 2 + 25) - (Math.abs(decoded[id].z) * (window.innerWidth / 2 - 50))) + "px"
-
-                    }
-                }
-
-
-                setTimeout(function () {
-                    ws.send("reciver");
-                }, 50);
             }
+
         }
 
         ws.onerror = (e) => {
@@ -122,11 +56,311 @@
             console.log(e.code, e.reason);
             console.log("\\---koniec---/")
         };
-    </script>
-</head>
 
-<body>
-    <main id="main"></main>
+        function game() {
+
+            let render_h = 800
+            let render_w = 800
+
+            let h = 4000
+            let w = 4000
+
+            let render_left = h / 2
+            let render_top = w / 2
+
+            let size = 50
+            let field = field_out(size)
+            let ph = h / 2 - size / 2
+            let pw = w / 2 - size / 2
+
+            let render = document.createElement("div")
+            render.id = "render"
+            render.style.width = render_h + "px"
+            render.style.height = render_w + "px"
+
+            let main = document.createElement("div")
+            main.id = "main"
+            main.style.width = w + "px"
+            main.style.height = h + "px"
+            main.addEventListener("click", leftClick)
+
+            let tabela = document.createElement("div")
+            tabela.id = "tabela"
+            tabela.style.width = 200 + "px"
+            tabela.style.height = 200 + "px"
+            tabela.style.left = (render_w + 20) + "px"
+
+            let ItemSizeX = document.createElement("input")
+            ItemSizeX.id = "ItemSizeX"
+            ItemSizeX.className = "tabela_item"
+            ItemSizeX.value = 50
+            ItemSizeX.style.width = tabela.style.width
+
+            let ItemSizeY = document.createElement("input")
+            ItemSizeY.id = "ItemSizeY"
+            ItemSizeY.className = "tabela_item"
+            ItemSizeY.value = 50
+            ItemSizeY.style.width = tabela.style.width
+
+            let squere = document.createElement("input")
+            squere.id = "squere"
+            squere.className = "tabela_item"
+            squere.type = "radio"
+            squere.name = "shape"
+            squere.defaultChecked = "true"
+            squere.style.width = tabela.style.width
+
+            tabela.append(ItemSizeX, ItemSizeY, squere)
+
+            let player = document.createElement("div")
+            player.id = "player"
+            player.style.width = size + "px"
+            player.style.height = size + "px"
+            // player.style.borderRadius = size + "px"
+            player.style.top = ph + "px"
+            player.style.left = pw + "px"
+            console.log(playerColor)
+            player.style.backgroundColor = playerColor
+
+            main.append(player)
+            render.append(main)
+            document.body.append(render, tabela)
+
+            function leftClick(e) {
+                let temp1 = document.getElementById("ItemSizeX")
+                let temp2 = document.getElementById("ItemSizeY")
+                if (temp1.value > 0 && isNaN(temp1.value) == false && temp2.value > 0 && isNaN(temp2.value) == false) {
+                    let sh = 0
+                    let item_sizeX = temp1.value
+                    let item_sizeY = temp2.value
+                    let parent = document.getElementById("main")
+                    let x = e.clientX - parent.offsetLeft
+                    let y = e.clientY - parent.offsetTop
+                    x = x - item_sizeX / 2
+                    y = y - item_sizeY / 2
+
+                    generate(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
+                    send(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
+                }
+            }
+
+            function generate(element) {
+                let x = parseInt(element.split("|")[0])
+                let y = parseInt(element.split("|")[1])
+                let item_sizeX = parseInt(element.split("|")[2].split(",")[0])
+                let item_sizeY = parseInt(element.split("|")[2].split(",")[1])
+                let sh = parseInt(element.split("|")[3])
+                let item = document.createElement("div")
+                item.style.backgroundColor = "black"
+
+                item.style.width = item_sizeX + "px"
+                item.style.height = item_sizeY + "px"
+                item.style.left = x + "px"
+                item.style.top = y + "px"
+                item.className = "item"
+
+                item.id = x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh
+                main.append(item)
+
+                tab_item.push(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
+            }
+
+            function send(element) {
+                ws.send(JSON.stringify({ status: "add", obstacle: element }))
+            }
+
+            let r, l, u, d = false
+
+            function down(e) {
+                if (e.which == 39 || e.which == 68) {
+                    r = true
+                }
+                if (e.which == 38 || e.which == 87) {
+                    u = true
+                }
+                if (e.which == 37 || e.which == 65) {
+                    l = true
+                }
+                if (e.which == 40 || e.which == 83) {
+                    d = true
+                }
+            }
+            function up(e) {
+                if (e.which == 39 || e.which == 68) {
+                    r = false
+                }
+                if (e.which == 38 || e.which == 87) {
+                    u = false
+                }
+                if (e.which == 37 || e.which == 65) {
+                    l = false
+                }
+                if (e.which == 40 || e.which == 83) {
+                    d = false
+                }
+            }
+
+            let speedH = 0
+            let speedW = 0
+            let maxspeed = 300
+            let tarcie = 0.5
+            let speedUpH = 0
+            let speedUpW = 0
+            let ph_p = render_h / 2 - size / 2
+            let pw_p = render_w / 2 - size / 2
+
+            setInterval(() => {
+                if (tab_players && tab_players[playerID]) {
+                    speedUpH = parseFloat(tab_players[playerID].y)
+                    speedUpW = parseFloat(tab_players[playerID].x)
+                }
+
+                if (speedW < maxspeed) {
+                    speedW -= speedUpW
+                }
+                if (speedH < maxspeed) {
+                    speedH += speedUpH
+                }
+
+                if (ph + speedH / 10 > h - size) {
+                    ph = h - size
+                    speedH = 0
+                }
+                if (ph + speedH / 10 < 0) {
+                    ph = 0
+                    speedH = 0
+                }
+                if (pw + speedW / 10 > w - size) {
+                    pw = w - size
+                    speedW = 0
+                }
+                if (pw + speedW / 10 < 0) {
+                    pw = 0
+                    speedW = 0
+                }
+
+                ph_p = ph
+                pw_p = pw
+                ph += Math.round(speedH / 10)
+                pw += Math.round(speedW / 10)
+                colide(ph, pw)
+
+                player.style.top = ph + "px"
+                player.style.left = pw + "px"
+
+                render_top = -ph + (render_h / 2) - (size / 2)
+                render_left = -pw + (render_w / 2) - (size / 2)
+
+                if (render_left >= 0 || render_left + w < render_w) {
+                } else {
+                    main.style.left = render_left + "px"
+                }
+                if (render_top >= 0 || render_top + h < render_h) {
+                } else {
+                    main.style.top = render_top + "px"
+                }
+                for (let i = 0; i < tab_server.length; i++) {
+                    if (!tab_item.includes(tab_server[i])) {
+                        generate(tab_server[i])
+                    }
+                }
+                ws.send(JSON.stringify({ status: "up" }))
+            }, 10);
+
+            function colide(hei, wid) {
+                for (let i = 0; i < tab_item.length; i++) {
+                    let x = parseInt(tab_item[i].split("|")[0])
+                    let y = parseInt(tab_item[i].split("|")[1])
+                    let sx = parseInt(tab_item[i].split("|")[2].split(",")[0])
+                    let sy = parseInt(tab_item[i].split("|")[2].split(",")[1])
+                    let sh = parseInt(tab_item[i].split("|")[3])
+                    let test = document.getElementById(tab_item[i])
+
+                    if (x > w) {
+                        x = 0
+                    }
+
+                }
+                for (let i = 0; i < tab_item.length; i++) {
+                    let x = parseInt(tab_item[i].split("|")[0])
+                    let y = parseInt(tab_item[i].split("|")[1])
+                    let sx = parseInt(tab_item[i].split("|")[2].split(",")[0])
+                    let sy = parseInt(tab_item[i].split("|")[2].split(",")[1])
+                    let sh = parseInt(tab_item[i].split("|")[3])
+
+                    if (sh == 0) {
+
+                        if (colide_rect(wid, hei, x, y, sx, sy) && (sx * sy) < field) {
+                            let temp = document.getElementById(tab_item[i])
+                            tab_item.splice(i, 1)
+                            field += ((sx / 2) * (sx / 2) * 3.14) / 50
+                            size = field_in(field)
+                            main.removeChild(temp)
+                            player.style.width = size + "px"
+                            player.style.height = size + "px"
+
+                        } else {
+                            let check_test = 0
+
+                            if (colide_rect(wid, ph_p, x, y, sx, sy) && (sx * sy) > field) {
+                                while (colide_rect(wid, ph_p, x, y, sx, sy) && check_test < 100) {
+                                    if (wid + size / 2 > x + sx / 2) {
+                                        wid++
+                                    } else {
+                                        wid--
+                                    }
+                                    check_test++
+                                }
+                                check_test = 0
+                                speedW = 0
+                                pw = wid
+                            }
+
+                            if (colide_rect(pw_p, hei, x, y, sx, sy) && (sx * sy) > field) {
+                                while (colide_rect(pw_p, hei, x, y, sx, sy) && check_test < 100) {
+                                    if (hei + size / 2 > y + sy / 2) {
+                                        hei++
+                                    } else {
+                                        hei--
+                                    }
+                                    check_test++
+                                }
+                                check_test = 0
+                                speedH = 0
+                                ph = hei
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            function colide_rect(wid, hei, x, y, sx, sy) {
+                if (wid > x - size && wid < x + sx && hei > y - size && hei < y + sy) {
+                    return true
+                } else {
+                    return false
+                }
+            }
+
+            function field_in(a) {
+                a = a / 3.14
+                a = Math.sqrt(a)
+                a = a * 2
+                a = Math.round(a)
+                return a
+            }
+
+            function field_out(a) {
+                a = a / 2
+                a = a * a
+                a = a * 3.14
+                a = Math.round(a)
+                return a
+            }
+
+        }
+    </script>
 </body>
 
 </html>

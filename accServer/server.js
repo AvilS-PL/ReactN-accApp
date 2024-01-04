@@ -6,6 +6,7 @@ const wss = new WebSocket.Server(
     });
 
 const players = []
+const obstacles = []
 const colors = [
     "brown",
     "aqua",
@@ -45,32 +46,32 @@ wss.on('connection', (ws, req) => {
             status = "sender"
             ws.send(color)
         } else if (message.toString() == "reciver") {
-            status = "reciver"
-            ws.send(JSON.stringify(players))
-        } else if (status == "sender") {
-            let decoded = JSON.parse(message)
-            players[id] = {
-                color: color,
-                x: decoded.x,
-                y: decoded.y,
-                z: decoded.z,
-                active: players[id].active
-            }
-        } else if (status == "reciver") {
-            color = message.toString()
             id = null
             for (let i = 0; i < players.length; i++) {
-                if (players[i] && players[i].color == color && !players[i].active) {
-                    players[i].active = true
+                if (players[i] && !players[i].active) {
                     id = i
+                    players[i].active = true
+                    status = "reciver"
                     break
                 }
             }
-            if (id == null) {
-                ws.send(id)
-            } else {
-                ws.send(id)
+            ws.send(JSON.stringify({ status: "init", id: id, players: players, obstacles: obstacles }))
+        } else if (status == "sender") {
+            let decoded = JSON.parse(message)
+            players[id].x = decoded.x
+            players[id].y = decoded.y
+            players[id].z = decoded.z
+            players[id].color = color
+        } else if (status == "reciver") {
+            let decoded = JSON.parse(message)
+            console.log(decoded)
+            if (decoded.status == "add") {
+                obstacles.push(decoded.obstacle)
             }
+            if (decoded.status == "remove") {
+                obstacles.splice(obstacles.indexOf(decoded.obstacle), 1)
+            }
+            ws.send(JSON.stringify({ status: "data", players: players, obstacles: obstacles }))
         }
     });
 

@@ -45,7 +45,7 @@ export default function App() {
 
   //websocket
   const connect = async () => {
-    setWebs(new WebSocket('ws://192.168.43.40:3000'))
+    setWebs(new WebSocket('ws://192.168.43.201:3000'))
   }
 
   const disconnect = () => {
@@ -57,7 +57,7 @@ export default function App() {
   useEffect(() => {
     if (webs) {
       webs.onopen = () => {
-        webs.send('sender');
+        webs.send("sender");
       }
 
       webs.onmessage = (e) => {
@@ -85,7 +85,7 @@ export default function App() {
 
   useEffect(() => {
     if (webs && webs.readyState === 1) {
-      webs.send(JSON.stringify({ x: realX, y: realY, z: realZ }));
+      webs.send(JSON.stringify({ message: "cords", x: realX, y: realY, z: realZ }));
     }
   }, [realX, realY, realZ]);
 
