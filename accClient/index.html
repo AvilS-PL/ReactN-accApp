@@ -15,6 +15,7 @@
         let tab_item = []
         let tab_server = []
         let tab_players = []
+        let tab_created_players = []
         let playerID = null
         let playerColor = "#00000000"
         const ws = new WebSocket('ws://192.168.43.201:3000');
@@ -31,6 +32,7 @@
                 } else {
                     playerID = decoded.id
                     playerColor = decoded.players[decoded.id].color
+                    tab_players = decoded.players
                     game()
                 }
             } else if (decoded.status == "data") {
@@ -68,10 +70,11 @@
             let render_left = h / 2
             let render_top = w / 2
 
-            let size = 50
+            let cPlayer = tab_players[playerID]
+            let size = (cPlayer.size ? cPlayer.size : 50)
+            let ph = (cPlayer.ph ? cPlayer.ph : h / 2 - 50 / 2)
+            let pw = (cPlayer.pw ? cPlayer.pw : w / 2 - 50 / 2)
             let field = field_out(size)
-            let ph = h / 2 - size / 2
-            let pw = w / 2 - size / 2
 
             let render = document.createElement("div")
             render.id = "render"
@@ -93,7 +96,7 @@
             let ItemSizeX = document.createElement("input")
             ItemSizeX.id = "ItemSizeX"
             ItemSizeX.className = "tabela_item"
-            ItemSizeX.value = 50
+            ItemSizeX.value = 30
             ItemSizeX.style.width = tabela.style.width
 
             let ItemSizeY = document.createElement("input")
@@ -119,7 +122,6 @@
             // player.style.borderRadius = size + "px"
             player.style.top = ph + "px"
             player.style.left = pw + "px"
-            console.log(playerColor)
             player.style.backgroundColor = playerColor
 
             main.append(player)
@@ -139,7 +141,6 @@
                     x = x - item_sizeX / 2
                     y = y - item_sizeY / 2
 
-                    generate(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
                     send(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
                 }
             }
@@ -164,6 +165,7 @@
 
                 tab_item.push(x + "|" + y + "|" + item_sizeX + "," + item_sizeY + "|" + sh)
             }
+
 
             function send(element) {
                 ws.send(JSON.stringify({ status: "add", obstacle: element }))
@@ -202,24 +204,34 @@
 
             let speedH = 0
             let speedW = 0
-            let maxspeed = 300
-            let tarcie = 0.5
+            let maxspeed = 120
+            let tarcie = 0.3
             let speedUpH = 0
             let speedUpW = 0
             let ph_p = render_h / 2 - size / 2
             let pw_p = render_w / 2 - size / 2
 
             setInterval(() => {
-                if (tab_players && tab_players[playerID]) {
-                    speedUpH = parseFloat(tab_players[playerID].y)
-                    speedUpW = parseFloat(tab_players[playerID].x)
+                if (tab_players && tab_players[playerID] && tab_players[playerID].y != undefined && tab_players[playerID].x != undefined) {
+                    speedUpH = parseFloat(tab_players[playerID].y) * 2
+                    speedUpW = parseFloat(tab_players[playerID].x) * 2
                 }
 
-                if (speedW < maxspeed) {
+                if (Math.abs(speedW) < maxspeed) {
                     speedW -= speedUpW
                 }
-                if (speedH < maxspeed) {
+                if (Math.abs(speedH) < maxspeed) {
                     speedH += speedUpH
+                }
+                if (speedH < 0) {
+                    speedH += tarcie
+                } else {
+                    speedH -= tarcie
+                }
+                if (speedW < 0) {
+                    speedW += tarcie
+                } else {
+                    speedW -= tarcie
                 }
 
                 if (ph + speedH / 10 > h - size) {
@@ -264,7 +276,55 @@
                         generate(tab_server[i])
                     }
                 }
-                ws.send(JSON.stringify({ status: "up" }))
+                for (let i = 0; i < tab_item.length; i++) {
+                    if (!tab_server.includes(tab_item[i])) {
+                        temp = document.getElementById(tab_item[i])
+                        main.removeChild(temp)
+                        tab_item.splice(tab_item.indexOf(tab_item[i]), 1)
+                    }
+                }
+                for (let i = 0; i < tab_players.length; i++) {
+                    console.log(playerID)
+                    if (tab_players[i] && tab_players[i] != null && tab_players[i].id != playerID) {
+                        let sPlayer = tab_players[i]
+                        if (!tab_created_players.includes(sPlayer.id)) {
+                            if (sPlayer.active) {
+                                tab_created_players.push(sPlayer.id)
+                                let user = document.createElement("div")
+                                user.id = "player" + sPlayer.id
+                                user.className = "item"
+                                user.style.width = (sPlayer.size ? sPlayer.size : 50) + "px"
+                                user.style.height = (sPlayer.size ? sPlayer.size : 50) + "px"
+                                user.style.top = (sPlayer.ph ? sPlayer.ph : h / 2 - 50 / 2) + "px"
+                                user.style.left = (sPlayer.pw ? sPlayer.pw : w / 2 - 50 / 2) + "px"
+                                user.style.backgroundColor = (sPlayer.color ? sPlayer.color : "white")
+                                main.append(user)
+                            }
+                        } else {
+                            console.log(sPlayer.id)
+                            if (sPlayer.active) {
+                                let user = document.getElementById("player" + sPlayer.id)
+                                user.style.opacity = 100 + "%"
+                                user.style.width = (sPlayer.size ? sPlayer.size : 50) + "px"
+                                user.style.height = (sPlayer.size ? sPlayer.size : 50) + "px"
+                                user.style.top = (sPlayer.ph ? sPlayer.ph : h / 2 - 50 / 2) + "px"
+                                user.style.left = (sPlayer.pw ? sPlayer.pw : w / 2 - 50 / 2) + "px"
+                                user.style.backgroundColor = (sPlayer.color ? sPlayer.color : "white")
+                            } else {
+                                let user = document.getElementById("player" + sPlayer.id)
+                                user.style.opacity = 0 + "%"
+                                // main.removeChild(user)
+                                // tab_created_players.splice(tab_created_players.indexOf(sPlayer.id), 1)
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < tab_created_players.length; i++) {
+                    if (tab_players[tab_created_players[i]] == null || tab_created_players[i] == playerID) {
+                        tab_created_players.splice(i, 1)
+                    }
+                }
+                ws.send(JSON.stringify({ status: "up", size: size, ph: ph, pw: pw }))
             }, 10);
 
             function colide(hei, wid) {
@@ -291,14 +351,11 @@
                     if (sh == 0) {
 
                         if (colide_rect(wid, hei, x, y, sx, sy) && (sx * sy) < field) {
-                            let temp = document.getElementById(tab_item[i])
-                            tab_item.splice(i, 1)
                             field += ((sx / 2) * (sx / 2) * 3.14) / 50
                             size = field_in(field)
-                            main.removeChild(temp)
                             player.style.width = size + "px"
                             player.style.height = size + "px"
-
+                            ws.send(JSON.stringify({ status: "remove", obstacle: tab_item[i] }))
                         } else {
                             let check_test = 0
 
@@ -333,7 +390,6 @@
                     }
                 }
             }
-
 
             function colide_rect(wid, hei, x, y, sx, sy) {
                 if (wid > x - size && wid < x + sx && hei > y - size && hei < y + sy) {
